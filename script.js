@@ -5,16 +5,16 @@ let workbook = null;
 // DOM Elements
 const fileInput = document.getElementById('fileInput');
 const filterSection = document.getElementById('filterSection');
-const columnSelect = document.getElementById('columnSelect');
-const valueSelect = document.getElementById('valueSelect');
-const downloadBtn = document.getElementById('downloadBtn');
+const statsSection = document.getElementById('statsSection');
+const fileNameSelect = document.getElementById('fileNameSelect');
+const processBtn = document.getElementById('processBtn');
 const previewTable = document.getElementById('previewTable');
+const uniqueCountDisplay = document.getElementById('uniqueCount');
 
 // Event Listeners
 fileInput.addEventListener('change', handleFileUpload);
-columnSelect.addEventListener('change', handleColumnChange);
-valueSelect.addEventListener('change', handleValueChange);
-downloadBtn.addEventListener('click', downloadFilteredData);
+fileNameSelect.addEventListener('change', handleFileNameChange);
+processBtn.addEventListener('click', processAndDownloadFiles);
 
 // Handle file upload
 async function handleFileUpload(e) {
@@ -36,57 +36,62 @@ async function handleFileUpload(e) {
             return;
         }
 
-        // Show filter section
-        filterSection.style.display = 'flex';
+        // Check if first column is "File Name"
+        const headers = Object.keys(excelData[0]);
+        if (!headers[0].toLowerCase().includes('file name')) {
+            alert('First column must be "File Name"');
+            return;
+        }
+
+        // Show filter and stats sections
+        filterSection.style.display = 'block';
+        statsSection.style.display = 'block';
         
-        // Populate column select
-        populateColumnSelect();
+        // Populate file name select and update stats
+        populateFileNameSelect();
+        updateUniqueFileCount();
         
         // Display preview
         displayPreview(excelData);
+        
+        // Enable process button
+        processBtn.disabled = false;
     } catch (error) {
         console.error('Error reading file:', error);
         alert('Error reading the Excel file. Please make sure it\'s a valid Excel file.');
     }
 }
 
-// Populate column select dropdown
-function populateColumnSelect() {
-    columnSelect.innerHTML = '<option value="">Select a column...</option>';
+// Populate file name select dropdown
+function populateFileNameSelect() {
+    fileNameSelect.innerHTML = '<option value="">Select a file name...</option>';
     
-    const headers = Object.keys(excelData[0]);
-    headers.forEach(header => {
+    const fileNameColumn = Object.keys(excelData[0])[0]; // Get first column name
+    const uniqueFileNames = [...new Set(excelData.map(row => row[fileNameColumn]))];
+    
+    uniqueFileNames.forEach(fileName => {
         const option = document.createElement('option');
-        option.value = header;
-        option.textContent = header;
-        columnSelect.appendChild(option);
+        option.value = fileName;
+        option.textContent = fileName;
+        fileNameSelect.appendChild(option);
     });
 }
 
-// Handle column selection
-function handleColumnChange() {
-    const selectedColumn = columnSelect.value;
-    if (!selectedColumn) {
-        valueSelect.innerHTML = '<option value="">Select a value...</option>';
-        return;
-    }
-
-    // Get unique values for the selected column
-    const uniqueValues = [...new Set(excelData.map(row => row[selectedColumn]))];
-    
-    // Populate value select
-    valueSelect.innerHTML = '<option value="">Select a value...</option>';
-    uniqueValues.forEach(value => {
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = value;
-        valueSelect.appendChild(option);
-    });
+// Update unique file count
+function updateUniqueFileCount() {
+    const fileNameColumn = Object.keys(excelData[0])[0];
+    const uniqueFileNames = new Set(excelData.map(row => row[fileNameColumn]));
+    uniqueCountDisplay.textContent = uniqueFileNames.size;
 }
 
-// Handle value selection
-function handleValueChange() {
-    downloadBtn.disabled = !valueSelect.value;
+// Handle file name selection
+function handleFileNameChange() {
+    const selectedFileName = fileNameSelect.value;
+    if (!selectedFileName) return;
+
+    const fileNameColumn = Object.keys(excelData[0])[0];
+    const filteredData = excelData.filter(row => row[fileNameColumn] === selectedFileName);
+    displayPreview(filteredData);
 }
 
 // Display preview table
@@ -119,26 +124,58 @@ function displayPreview(data, limit = 5) {
     previewTable.innerHTML = tableHTML;
 }
 
-// Download filtered data
-function downloadFilteredData() {
-    const selectedColumn = columnSelect.value;
-    const selectedValue = valueSelect.value;
+// Remove File Name column from data
+function removeFileNameColumn(data) {
+    return data.map(row => {
+        const newRow = { ...row };
+        delete newRow[Object.keys(newRow)[0]]; // Remove first column (File Name)
+        return newRow;
+    });
+}
 
-    if (!selectedColumn || !selectedValue) return;
-
-    // Filter data
-    const filteredData = excelData.filter(row => row[selectedColumn] == selectedValue);
-
-    if (filteredData.length === 0) {
-        alert('No matching data found');
-        return;
+// Process and download files
+async function processAndDownloadFiles() {
+    const fileNameColumn = Object.keys(excelData[0])[0];
+    const uniqueFileNames = [...new Set(excelData.map(row => row[fileNameColumn]))];
+    
+    // Create a new ZIP file
+    const zip = new JSZip();
+    
+    // Process each unique file name
+    uniqueFileNames.forEach(fileName => {
+        // Filter data for this file name
+        const filteredData = excelData.filter(row => row[fileNameColumn] === fileName);
+        
+        // Remove File Name column from the filtered data
+        const processedData = removeFileNameColumn(filteredData);
+        
+        // Create a new workbook for this data
+        const ws = XLSX.utils.json_to_sheet(processedData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+        
+        // Convert workbook to binary string
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        
+        // Add file to ZIP
+        zip.file(`${fileName}.xlsx`, excelBuffer);
+    });
+    
+    try {
+        // Generate ZIP file
+        const content = await zip.generateAsync({ type: 'blob' });
+        
+        // Create download link
+        const downloadLink = document.createElement('a');
+        downloadLink.href = URL.createObjectURL(content);
+        downloadLink.download = 'processed_files.zip';
+        
+        // Trigger download
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    } catch (error) {
+        console.error('Error creating ZIP file:', error);
+        alert('Error creating ZIP file');
     }
-
-    // Create new workbook with filtered data
-    const ws = XLSX.utils.json_to_sheet(filteredData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Filtered Data');
-
-    // Generate download
-    XLSX.writeFile(wb, `filtered_data_${selectedColumn}_${selectedValue}.xlsx`);
 }

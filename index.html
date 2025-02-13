@@ -3,35 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel Filter and Download</title>
+    <title>Excel File Processor</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>Excel Filter and Download</h1>
+        <h1>Excel File Processor</h1>
         
         <div class="upload-section">
             <input type="file" id="fileInput" accept=".xlsx, .xls" />
             <p class="file-info">Supported formats: .xlsx, .xls</p>
         </div>
 
+        <div class="stats-section" id="statsSection">
+            <div class="stats-box">
+                <h3>Unique File Names</h3>
+                <p id="uniqueCount">0</p>
+            </div>
+        </div>
+
         <div class="filter-section" id="filterSection">
             <div class="filter-container">
-                <label for="columnSelect">Select Column:</label>
-                <select id="columnSelect">
-                    <option value="">Select a column...</option>
-                </select>
-            </div>
-            
-            <div class="filter-container">
-                <label for="valueSelect">Select Value:</label>
-                <select id="valueSelect">
-                    <option value="">Select a value...</option>
+                <label for="fileNameSelect">Select File Name:</label>
+                <select id="fileNameSelect">
+                    <option value="">Select a file name...</option>
                 </select>
             </div>
         </div>
 
-        <button id="downloadBtn" disabled>Download Filtered Data</button>
+        <button id="processBtn" disabled>Process & Download All Files</button>
 
         <div class="preview-section">
             <h2>Data Preview</h2>
@@ -40,6 +40,7 @@
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
