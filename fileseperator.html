@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Filter and Download</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Excel Filter and Download</h1>
+        
+        <div class="upload-section">
+            <input type="file" id="fileInput" accept=".xlsx, .xls" />
+            <p class="file-info">Supported formats: .xlsx, .xls</p>
+        </div>
+
+        <div class="filter-section" id="filterSection">
+            <div class="filter-container">
+                <label for="columnSelect">Select Column:</label>
+                <select id="columnSelect">
+                    <option value="">Select a column...</option>
+                </select>
+            </div>
+            
+            <div class="filter-container">
+                <label for="valueSelect">Select Value:</label>
+                <select id="valueSelect">
+                    <option value="">Select a value...</option>
+                </select>
+            </div>
+        </div>
+
+        <button id="downloadBtn" disabled>Download Filtered Data</button>
+
+        <div class="preview-section">
+            <h2>Data Preview</h2>
+            <div class="table-container" id="previewTable"></div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
