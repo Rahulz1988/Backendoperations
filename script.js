@@ -226,7 +226,7 @@ async function processAndDownloadFiles() {
         // Add statistics (subtract 1 for header row)
         statsData.push({
             'File Name': fileName,
-            'Number of Entries': filteredData.length - 1
+            'Number of Entries': filteredData.length
         });
     });
 
