@@ -15,13 +15,28 @@
     box-sizing: border-box;
 }
 
+html {
+    height: 100%;
+}
+
 body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     font-family: Arial, sans-serif;
     line-height: 1.6;
     background-color: var(--cream);
+    margin: 0;
 }
 
-/* Index Page Styles */
+/* Main Content Wrapper */
+main {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
 /* Navigation Panel */
 .nav-panel {
     background-color: var(--primary-green);
@@ -71,16 +86,19 @@ body {
 
 /* Operations Grid */
 .operations-container {
+    flex: 1 0 auto;
     max-width: 1200px;
     margin: 2rem auto;
-    padding: 0 2rem;
+    padding: 0 2rem 2rem 2rem;
+    width: 100%;
 }
 
 .operations-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 2rem;
     margin-top: 2rem;
+    width: 100%;
 }
 
 .operation-tile {
@@ -288,11 +306,29 @@ tr:hover {
     background-color: var(--border-cream);
 }
 
+/* Footer Styles */
+.footer {
+    margin-top: auto;
+    background-color: var(--primary-green);
+    color: white;
+    text-align: center;
+    padding: 1rem;
+    width: 100%;
+}
+
+.footer p {
+    margin: 0;
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     .container {
         margin: 1rem;
         padding: 1rem;
+    }
+
+    .operations-grid {
+        grid-template-columns: 1fr;
     }
 
     .filter-section {
