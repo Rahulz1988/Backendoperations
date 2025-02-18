@@ -62,37 +62,11 @@ async function handleFileUpload(e) {
     }
 }
 
-// Convert JSON data to CSV string
-function convertToCSV(jsonData) {
-    if (jsonData.length === 0) return '';
-    
-    const headers = Object.keys(jsonData[0]);
-    const csvRows = [];
-
-    // Add headers
-    csvRows.push(headers.join(','));
-
-    // Add data rows
-    for (const row of jsonData) {
-        const values = headers.map(header => {
-            const value = row[header] ?? '';
-            // Escape quotes and wrap in quotes if the value contains commas or quotes
-            const escaped = String(value).replace(/"/g, '""');
-            return value.toString().includes(',') || value.toString().includes('"') 
-                ? `"${escaped}"` 
-                : escaped;
-        });
-        csvRows.push(values.join(','));
-    }
-
-    return csvRows.join('\n');
-}
-
-// Other helper functions remain the same
+// Populate file name select dropdown
 function populateFileNameSelect() {
     fileNameSelect.innerHTML = '<option value="">Select a file name...</option>';
     
-    const fileNameColumn = Object.keys(excelData[0])[0];
+    const fileNameColumn = Object.keys(excelData[0])[0]; // Get first column name
     const uniqueFileNames = [...new Set(excelData.map(row => row[fileNameColumn]))];
     
     uniqueFileNames.forEach(fileName => {
@@ -103,12 +77,14 @@ function populateFileNameSelect() {
     });
 }
 
+// Update unique file count
 function updateUniqueFileCount() {
     const fileNameColumn = Object.keys(excelData[0])[0];
     const uniqueFileNames = new Set(excelData.map(row => row[fileNameColumn]));
     uniqueCountDisplay.textContent = uniqueFileNames.size;
 }
 
+// Handle file name selection
 function handleFileNameChange() {
     const selectedFileName = fileNameSelect.value;
     if (!selectedFileName) return;
@@ -118,6 +94,7 @@ function handleFileNameChange() {
     displayPreview(filteredData);
 }
 
+// Display preview table
 function displayPreview(data, limit = 5) {
     if (!data || data.length === 0) {
         previewTable.innerHTML = '<p>No data to preview</p>';
@@ -147,15 +124,16 @@ function displayPreview(data, limit = 5) {
     previewTable.innerHTML = tableHTML;
 }
 
+// Remove File Name column from data
 function removeFileNameColumn(data) {
     return data.map(row => {
         const newRow = { ...row };
-        delete newRow[Object.keys(newRow)[0]];
+        delete newRow[Object.keys(newRow)[0]]; // Remove first column (File Name)
         return newRow;
     });
 }
 
-// Updated process and download function for CSV
+// Process and download files
 async function processAndDownloadFiles() {
     const fileNameColumn = Object.keys(excelData[0])[0];
     const uniqueFileNames = [...new Set(excelData.map(row => row[fileNameColumn]))];
@@ -171,11 +149,16 @@ async function processAndDownloadFiles() {
         // Remove File Name column from the filtered data
         const processedData = removeFileNameColumn(filteredData);
         
-        // Convert to CSV
-        const csvContent = convertToCSV(processedData);
+        // Create a new workbook for this data
+        const ws = XLSX.utils.json_to_sheet(processedData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+        
+        // Convert workbook to binary string
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
         
         // Add file to ZIP
-        zip.file(`${fileName}.csv`, csvContent);
+        zip.file(`${fileName}.xlsx`, excelBuffer);
     });
     
     try {

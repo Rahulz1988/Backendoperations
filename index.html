@@ -3,44 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel File Processor</title>
+    <title>Back End Operations Dashboard</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Excel File Processor</h1>
-        
-        <div class="upload-section">
-            <input type="file" id="fileInput" accept=".xlsx, .xls" />
-            <p class="file-info">Supported formats: .xlsx, .xls</p>
-        </div>
+    <!-- Navigation Panel -->
+    <nav class="nav-panel">
+        <ul class="nav-list">
+            <li><a href="index.html">Home</a></li>
+            <!-- <li><a href="#operations">Operations</a></li>
+            <li><a href="#reports">Reports</a></li>
+            <li><a href="#settings">Settings</a></li>
+            <li><a href="#help">Help</a></li> -->
+        </ul>
+    </nav>
 
-        <div class="stats-section" id="statsSection">
-            <div class="stats-box">
-                <h3>Unique File Names</h3>
-                <p id="uniqueCount">0</p>
-            </div>
-        </div>
-
-        <div class="filter-section" id="filterSection">
-            <div class="filter-container">
-                <label for="fileNameSelect">Select File Name:</label>
-                <select id="fileNameSelect">
-                    <option value="">Select a file name...</option>
-                </select>
-            </div>
-        </div>
-
-        <button id="processBtn" disabled>Process & Download All Files</button>
-
-        <div class="preview-section">
-            <h2>Data Preview</h2>
-            <div class="table-container" id="previewTable"></div>
+    <!-- Scrolling Banner -->
+    <div class="banner-container">
+        <div class="banner-text">
+            Back End Operations - Streamline Your Workflow - Efficient Data Processing - Automated Solutions
         </div>
     </div>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="script.js"></script>
+
+    <!-- Operations Grid -->
+    <div class="operations-container">
+        <h1>Back End Operations</h1>
+        <div class="operations-grid">
+            <!-- Excel Processor Tile -->
+            <a href="data_Seggragation.html" class="operation-tile">
+                <div class="operation-icon">📊</div>
+                <h3>Data Segragation</h3>
+                <p>Split Excel files based on filename column and process data efficiently</p>
+            </a>
+
+           <!-- Exam Seat Allocation Tile -->
+<a href="seat_allocation.html" class="operation-tile">
+    <div class="operation-icon">📋</div>
+    <h3>Exam Seat Allocation</h3>
+    <p>Perform Seat Allocation Batchwise and Day Wise</p>
+</a>
+
+            <!-- File Converter Tile -->
+            <!-- <div class="operation-tile">
+                <div class="operation-icon">🔄</div>
+                <h3>File Converter</h3>
+                <p>Convert files between different formats seamlessly</p>
+            </div> -->
+
+            <!-- Report Generator Tile -->
+            <!-- <div class="operation-tile">
+                <div class="operation-icon">📈</div>
+                <h3>Report Generator</h3>
+                <p>Generate customized reports from your data</p>
+            </div> -->
+
+            <!-- Data Validation Tile -->
+            <!-- <div class="operation-tile">
+                <div class="operation-icon">✅</div>
+                <h3>Data Validation</h3>
+                <p>Validate and clean your data sets automatically</p>
+            </div> -->
+
+            <!-- Database Management Tile -->
+            <!-- <div class="operation-tile">
+                <div class="operation-icon">🗄️</div>
+                <h3>Database Management</h3>
+                <p>Manage and organize your database operations</p>
+            </div> -->
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Back End Operations Dashboard. All rights reserved.</p>
+    </footer>
 </body>
 </html>

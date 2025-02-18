@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Seat Allocation System</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Exam Seat Allocation System</h1>
+
+       
+
+        <div class="upload-section">
+
+            <div class="file-input">
+
+                <h3>Upload Candidate Data</h3>
+
+                <input type="file" id="candidateFile" accept=".xlsx,.xls">
+
+            </div>
+
+           
+
+            <div class="file-input">
+
+                <h3>Upload Lab Configuration</h3>
+
+                <input type="file" id="labFile" accept=".xlsx,.xls">
+
+            </div>
+
+        </div>
+
+ 
+
+        <button id="processButton" disabled>Process Allocation</button>
+
+ 
+
+        <div class="results-section">
+
+            <div id="messageArea"></div>
+
+            <div class="table-container">
+
+                <table id="resultTable" style="display: none;">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Candidate Id</th>
+
+                            <th>Candidate Email</th>
+
+                            <th>Venue Code</th>
+
+                            <th>Venue Name</th>
+
+                            <th>City</th>
+
+                            <th>Exam Date</th>
+
+                            <th>Exam Day</th>
+
+                            <th>Batch</th>
+
+                            <th>False No</th>
+
+                            <th>Building Name</th>
+
+                            <th>Floor Name</th>
+
+                            <th>Lab Name</th>
+
+                            <th>Lab No</th>
+
+                            <th>Server 1</th>
+
+                            <th>Seat No</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="resultBody"></tbody>
+
+                </table>
+
+            </div>
+
+            <button id="downloadButton" style="display: none;">Download Results</button>
+
+        </div>
+
+    </div>
+
+    <script src="seat_script.js"></script>
+
+</body>
+
+</html>
+
