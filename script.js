@@ -156,12 +156,58 @@ function removeFileNameColumn(data) {
 }
 
 // Updated process and download function for CSV
+// async function processAndDownloadFiles() {
+//     const fileNameColumn = Object.keys(excelData[0])[0];
+//     const uniqueFileNames = [...new Set(excelData.map(row => row[fileNameColumn]))];
+    
+//     // Create a new ZIP file
+//     const zip = new JSZip();
+    
+//     // Process each unique file name
+//     uniqueFileNames.forEach(fileName => {
+//         // Filter data for this file name
+//         const filteredData = excelData.filter(row => row[fileNameColumn] === fileName);
+        
+//         // Remove File Name column from the filtered data
+//         const processedData = removeFileNameColumn(filteredData);
+        
+//         // Convert to CSV
+//         const csvContent = convertToCSV(processedData);
+        
+//         // Add file to ZIP
+//         zip.file(`${fileName}.csv`, csvContent);
+//     });
+    
+//     try {
+//         // Generate ZIP file
+//         const content = await zip.generateAsync({ type: 'blob' });
+        
+//         // Create download link
+//         const downloadLink = document.createElement('a');
+//         downloadLink.href = URL.createObjectURL(content);
+//         downloadLink.download = 'processed_files.zip';
+        
+//         // Trigger download
+//         document.body.appendChild(downloadLink);
+//         downloadLink.click();
+//         document.body.removeChild(downloadLink);
+//     } catch (error) {
+//         console.error('Error creating ZIP file:', error);
+//         alert('Error creating ZIP file');
+//     }
+// }
+
+// ... (previous code remains the same until processAndDownloadFiles function)
+
 async function processAndDownloadFiles() {
     const fileNameColumn = Object.keys(excelData[0])[0];
     const uniqueFileNames = [...new Set(excelData.map(row => row[fileNameColumn]))];
     
     // Create a new ZIP file
     const zip = new JSZip();
+    
+    // Prepare statistics data
+    const statsData = [];
     
     // Process each unique file name
     uniqueFileNames.forEach(fileName => {
@@ -176,7 +222,24 @@ async function processAndDownloadFiles() {
         
         // Add file to ZIP
         zip.file(`${fileName}.csv`, csvContent);
+
+        // Add statistics (subtract 1 for header row)
+        statsData.push({
+            'File Name': fileName,
+            'Number of Entries': filteredData.length - 1
+        });
     });
+
+    // Create statistics Excel file
+    const ws = XLSX.utils.json_to_sheet(statsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Statistics");
+    
+    // Convert Excel file to binary
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    
+    // Add Excel file to ZIP
+    zip.file('file_statistics.xlsx', excelBuffer);
     
     try {
         // Generate ZIP file
