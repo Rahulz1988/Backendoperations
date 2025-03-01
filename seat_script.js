@@ -1,794 +1,712 @@
+// Track application state
+const appState = {
+    candidateData: null,
+    labConfigData: null,
+    labAllocationResult: null,
+    seatAllocationResult: null
+};
 
-let candidateData = null;
+// DOM Elements
+const candidateFileInput = document.getElementById('candidateFile');
+const labConfigFileInput = document.getElementById('labConfigFile');
+const labAllocatedFileInput = document.getElementById('labAllocatedFile');
+const allocateLabBtn = document.getElementById('allocateLabBtn');
+const allocateSeatsBtn = document.getElementById('allocateSeatsBtn');
+const downloadLabAllocationBtn = document.getElementById('downloadLabAllocationBtn');
+const downloadSeatAllocationBtn = document.getElementById('downloadSeatAllocationBtn');
+const labAllocationStatus = document.getElementById('labAllocationStatus');
+const seatAllocationStatus = document.getElementById('seatAllocationStatus');
+const labAllocationResults = document.getElementById('labAllocationResults');
+const seatAllocationResults = document.getElementById('seatAllocationResults');
 
-let labConfig = null;
-
- 
-
-document.addEventListener('DOMContentLoaded', function() {
-
-    document.getElementById('candidateFile').addEventListener('change', handleCandidateFile);
-
-    document.getElementById('labFile').addEventListener('change', handleLabFile);
-
-    document.getElementById('processButton').addEventListener('click', processAllocation);
-
-    document.getElementById('downloadButton').addEventListener('click', downloadResults);
-
+// Event Listeners for file inputs
+candidateFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    try {
+        showNotification(labAllocationStatus, 'Reading candidate data...', 'info');
+        appState.candidateData = await readExcelFile(file);
+        showNotification(labAllocationStatus, 'Candidate data loaded successfully!', 'success');
+        checkEnableLabAllocation();
+    } catch (error) {
+        console.error('Error reading candidate data:', error);
+        showNotification(labAllocationStatus, 'Error reading candidate data: ' + error.message, 'error');
+    }
 });
 
- 
-
-function handleCandidateFile(e) {
-
+labConfigFileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
-
-    readExcelFile(file, 'candidate');
-
-}
-
- 
-
-function handleLabFile(e) {
-
-    const file = e.target.files[0];
-
-    readExcelFile(file, 'lab');
-
-}
-
- 
-
-function readExcelFile(file, type) {
-
-    const reader = new FileReader();
-
-    reader.onload = function(e) {
-
-        const data = new Uint8Array(e.target.result);
-
-        const workbook = XLSX.read(data, {type: 'array'});
-
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-
- 
-
-        if (type === 'candidate') {
-
-            candidateData = jsonData;
-
-        } else {
-
-            labConfig = jsonData;
-
-        }
-
- 
-
-        checkEnableProcess();
-
-        showMessage(`${type === 'candidate' ? 'Candidate' : 'Lab'} data loaded successfully`, 'success');
-
-    };
-
-    reader.readAsArrayBuffer(file);
-
-}
-
- 
-
-function checkEnableProcess() {
-
-    const processButton = document.getElementById('processButton');
-
-    processButton.disabled = !(candidateData && labConfig);
-
-}
-
- 
-
-function showMessage(message, type) {
-
-    const messageArea = document.getElementById('messageArea');
-
-    messageArea.textContent = message;
-
-    messageArea.className = type;
-
-    messageArea.style.display = 'block';
-
-}
-
- 
-
-function validateBatchCount(candidates, labConfig) {
-
-    // Group candidates by venue, date, and batch
-
-    const batchGroups = {};
-
-    candidates.forEach(candidate => {
-
-        const key = `${candidate['Venue Code']}_${candidate['Exam Date']}_${candidate.Batch}`;
-
-        if (!batchGroups[key]) {
-
-            batchGroups[key] = {
-
-                count: 0,
-
-                venueCode: candidate['Venue Code'],
-
-                venueName: candidate['Venue Name'],
-
-                date: candidate['Exam Date'],
-
-                batch: candidate.Batch,
-
-                city: candidate.City
-
-            };
-
-        }
-
-        batchGroups[key].count++;
-
-    });
-
- 
-
-    // Calculate total lab capacity for each venue
-
-    const labCapacities = {};
-
-    labConfig.forEach(lab => {
-
-        const key = lab['Centre Code'];
-
-        if (!labCapacities[key]) {
-
-            labCapacities[key] = {
-
-                totalCapacity: 0,
-
-                venueName: lab['Exam Centre Name'],
-
-                city: lab.City,
-
-                labs: []
-
-            };
-
-        }
-
-        labCapacities[key].totalCapacity += parseInt(lab.Count) || 0;
-
-        labCapacities[key].labs.push({
-
-            labNo: lab['Lab No'],
-
-            capacity: parseInt(lab.Count) || 0
-
-        });
-
-    });
-
- 
-
-    // Check for capacity violations
-
-    const errors = [];
-
-    Object.values(batchGroups).forEach(group => {
-
-        const venueCapacity = labCapacities[group.venueCode];
-
-       
-
-        if (!venueCapacity) {
-
-            errors.push({
-
-                venue: group.venueName,
-
-                date: group.date,
-
-                batch: group.batch,
-
-                count: group.count,
-
-                capacity: 0,
-
-                city: group.city,
-
-                message: 'No lab configuration found for this venue'
-
-            });
-
-            return;
-
-        }
-
- 
-
-        if (group.count > venueCapacity.totalCapacity) {
-
-            let labDetails = venueCapacity.labs.map(lab =>
-
-                `Lab ${lab.labNo}: ${lab.capacity} seats`
-
-            ).join(', ');
-
-           
-
-            errors.push({
-
-                venue: group.venueName,
-
-                date: group.date,
-
-                batch: group.batch,
-
-                count: group.count,
-
-                capacity: venueCapacity.totalCapacity,
-
-                city: group.city,
-
-                message: `Batch size (${group.count}) exceeds venue capacity (${venueCapacity.totalCapacity}). Available labs: ${labDetails}`
-
-            });
-
-        }
-
-    });
-
- 
-
-    return errors;
-
-}
-
- 
-
-// function processAllocation() {
-
-//     try {
-
-//         // Sort candidates by City, Date, Batch, and False No
-
-//         const sortedCandidates = [...candidateData].sort((a, b) => {
-
-//             if (a.City !== b.City) return a.City.localeCompare(b.City);
-
-//             if (a['Exam Date'] !== b['Exam Date']) return new Date(a['Exam Date']) - new Date(b['Exam Date']);
-
-//             if (a.Batch !== b.Batch) return a.Batch.localeCompare(b.Batch);
-
-//             return (parseInt(a['False No']) || 0) - (parseInt(b['False No']) || 0);
-
-//         });
-
- 
-
-//         // Validate batch counts
-
-//         const validationErrors = validateBatchCount(sortedCandidates, labConfig);
-
-//         if (validationErrors.length > 0) {
-
-//             let errorMessage = 'Capacity Validation Errors:\n\n';
-
-//             validationErrors.forEach(error => {
-
-//                 errorMessage += `City: ${error.city}\n`;
-
-//                 errorMessage += `Center: ${error.venue}\n`;
-
-//                 errorMessage += `Date: ${error.date}\n`;
-
-//                 errorMessage += `Batch: ${error.batch}\n`;
-
-//                 errorMessage += `Batch Count: ${error.count}\n`;
-
-//                 errorMessage += `Lab Capacity: ${error.capacity}\n`;
-
-//                 errorMessage += `Issue: ${error.message}\n\n`;
-
-//             });
-
-//             throw new Error(errorMessage);
-
-//         }
-
- 
-
-//         // Group and sort labs by venue
-
-//         const venueLabsMap = {};
-
-//         labConfig.forEach(lab => {
-
-//             const key = `${lab['Centre Code']}`;
-
-//             if (!venueLabsMap[key]) {
-
-//                 venueLabsMap[key] = [];
-
-//             }
-
-//             venueLabsMap[key].push({
-
-//                 ...lab,
-
-//                 Count: parseInt(lab.Count) || 0
-
-//             });
-
-//         });
-
- 
-
-//        // Sort labs within each venue by Lab No
-
-// Object.values(venueLabsMap).forEach(labs => {
-
-//     labs.sort((a, b) => {
-
-//         // Convert Lab No to string and remove any non-numeric characters
-
-//         const labNoA = String(a['Lab No']).replace(/\D/g, '');
-
-//         const labNoB = String(b['Lab No']).replace(/\D/g, '');
-
-       
-
-//         // Compare as numbers
-
-//         return parseInt(labNoA) - parseInt(labNoB);
-
-//     });
-
-// });
-
- 
-
-//         // Track current position in each lab
-
-//         const labPositions = {};
-
-//         let currentDate = '';
-
-//         let currentBatch = '';
-
- 
-
-//         // Allocate seats
-
-//         const allocatedResults = sortedCandidates.map(candidate => {
-
-//             // Reset lab positions when date or batch changes
-
-//             if (currentDate !== candidate['Exam Date'] || currentBatch !== candidate.Batch) {
-
-//                 currentDate = candidate['Exam Date'];
-
-//                 currentBatch = candidate.Batch;
-
-//                 Object.keys(labPositions).forEach(key => {
-
-//                     labPositions[key] = 0;
-
-//                 });
-
-//             }
-
- 
-
-//             const venueLabs = venueLabsMap[candidate['Venue Code']] || [];
-
-//             let allocated = false;
-
-//             let allocation = null;
-
- 
-
-//             // Sequential lab allocation
-
-//             for (const lab of venueLabs) {
-
-//                 const key = `${lab['Centre Code']}_${lab['Lab No']}`;
-
-//                 const currentCount = labPositions[key] || 0;
-
- 
-
-//                 if (currentCount < lab.Count) {
-
-//                     // Allocate to this lab
-
-//                     labPositions[key] = currentCount + 1;
-
-//                     allocated = true;
-
-//                     allocation = {
-
-//                         ...candidate,
-
-//                         'Building Name': lab['Building Name'],
-
-//                         'Floor Name': lab['Floor Name'],
-
-//                         'Lab Name': lab['Lab Name'],
-
-//                         'Lab No': lab['Lab No'],
-
-//                         'Server 1': lab['Server 1'],
-
-//                         'Seat No': currentCount + 1
-
-//                     };
-
-//                     break;
-
-//                 }
-
-//             }
-
- 
-
-//             if (!allocated) {
-
-//                 throw new Error(`Unable to allocate seat for candidate ${candidate['Candidate Id']} in ${candidate['Venue Name']}`);
-
-//             }
-
- 
-
-//             return allocation;
-
-//         });
-
- 
-
-//         // Display and enable download
-
-//         displayResults(allocatedResults);
-
-//         showMessage('Seat allocation completed successfully', 'success');
-
-//         document.getElementById('downloadButton').style.display = 'block';
-
-//         document.getElementById('resultTable').style.display = 'table';
-
-//     } catch (error) {
-
-//         showMessage(error.message, 'error');
-
-//         document.getElementById('messageArea').style.whiteSpace = 'pre-line';
-
-//     }
-
-// }
-
- 
-
-function processAllocation() {
-
+    if (!file) return;
+    
     try {
-
-        // Sort candidates by City, Date, Batch, and False No
-
-        const sortedCandidates = [...candidateData].sort((a, b) => {
-
-            if (a.City !== b.City) return a.City.localeCompare(b.City);
-
-            if (a['Exam Date'] !== b['Exam Date']) return new Date(a['Exam Date']) - new Date(b['Exam Date']);
-
-            if (a.Batch !== b.Batch) return a.Batch.localeCompare(b.Batch);
-
-            return (parseInt(a['False No']) || 0) - (parseInt(b['False No']) || 0);
-
-        });
-
- 
-
-        // Validate batch counts
-
-        const validationErrors = validateBatchCount(sortedCandidates, labConfig);
-
-        if (validationErrors.length > 0) {
-
-            let errorMessage = 'Capacity Validation Errors:\n\n';
-
-            validationErrors.forEach(error => {
-
-                errorMessage += `City: ${error.city}\n`;
-
-                errorMessage += `Center: ${error.venue}\n`;
-
-                errorMessage += `Date: ${error.date}\n`;
-
-                errorMessage += `Batch: ${error.batch}\n`;
-
-                errorMessage += `Batch Count: ${error.count}\n`;
-
-                errorMessage += `Lab Capacity: ${error.capacity}\n`;
-
-                errorMessage += `Issue: ${error.message}\n\n`;
-
-            });
-
-            throw new Error(errorMessage);
-
-        }
-
- 
-
-        // Group and sort labs by venue
-
-        const venueLabsMap = {};
-
-        labConfig.forEach(lab => {
-
-            const key = `${lab['Centre Code']}`;
-
-            if (!venueLabsMap[key]) {
-
-                venueLabsMap[key] = [];
-
-            }
-
-            venueLabsMap[key].push({
-
-                ...lab,
-
-                Count: parseInt(lab.Count) || 0
-
-            });
-
-        });
-
- 
-
-        // Sort labs within each venue by Lab No
-
-        Object.values(venueLabsMap).forEach(labs => {
-
-            labs.sort((a, b) => {
-
-                const labNoA = String(a['Lab No']).replace(/\D/g, '');
-
-                const labNoB = String(b['Lab No']).replace(/\D/g, '');
-
-                return parseInt(labNoA) - parseInt(labNoB);
-
-            });
-
-        });
-
- 
-
-        // Track batch-wise seat numbering
-
-        let currentBatchStart = 1;
-
-        let currentDate = '';
-
-        let currentBatch = '';
-
-        let currentVenue = '';
-
- 
-
-        // Allocate seats with continuous numbering within batch
-
-        const allocatedResults = sortedCandidates.map(candidate => {
-
-            // Reset seat numbering when date, batch, or venue changes
-
-            if (currentDate !== candidate['Exam Date'] ||
-
-                currentBatch !== candidate.Batch ||
-
-                currentVenue !== candidate['Venue Code']) {
-
-                currentDate = candidate['Exam Date'];
-
-                currentBatch = candidate.Batch;
-
-                currentVenue = candidate['Venue Code'];
-
-                currentBatchStart = 1;
-
-            }
-
- 
-
-            const venueLabs = venueLabsMap[candidate['Venue Code']] || [];
-
-            let allocated = false;
-
-            let allocation = null;
-
-            let seatRangeStart = currentBatchStart;
-
- 
-
-            // Find the appropriate lab for current seat number
-
-            for (const lab of venueLabs) {
-
-                const labCapacity = lab.Count;
-
-                if (currentBatchStart <= seatRangeStart + labCapacity - 1) {
-
-                    allocated = true;
-
-                    allocation = {
-
-                        ...candidate,
-
-                        'Building Name': lab['Building Name'],
-
-                        'Floor Name': lab['Floor Name'],
-
-                        'Lab Name': lab['Lab Name'],
-
-                        'Lab No': lab['Lab No'],
-
-                        'Server 1': lab['Server'],
-
-                        'Seat No': currentBatchStart
-
-                    };
-
-                    currentBatchStart++;
-
-                    break;
-
-                }
-
-                seatRangeStart += labCapacity;
-
-            }
-
- 
-
-            if (!allocated) {
-
-                throw new Error(
-
-                    `Unable to allocate seat for candidate ${candidate['Candidate Id']} ` +
-
-                    `in ${candidate['Venue Name']} (Batch ${candidate.Batch})`
-
-                );
-
-            }
-
- 
-
-            return allocation;
-
-        });
-
- 
-
-        // Display and enable download
-
-        displayResults(allocatedResults);
-
-        showMessage('Seat allocation completed successfully', 'success');
-
-        document.getElementById('downloadButton').style.display = 'block';
-
-        document.getElementById('resultTable').style.display = 'table';
-
- 
-
-        // Log allocation details for verification
-
-        console.log('Allocation Details:');
-
-        const grouped = groupBy(allocatedResults, 'Lab No');
-
-        Object.entries(grouped).forEach(([labNo, candidates]) => {
-
-            console.log(`Lab ${labNo}: Seats ${Math.min(...candidates.map(c => c['Seat No']))} to ${Math.max(...candidates.map(c => c['Seat No']))}`);
-
-        });
-
- 
-
+        showNotification(labAllocationStatus, 'Reading lab configuration data...', 'info');
+        appState.labConfigData = await readExcelFile(file);
+        showNotification(labAllocationStatus, 'Lab configuration data loaded successfully!', 'success');
+        checkEnableLabAllocation();
     } catch (error) {
-
-        showMessage(error.message, 'error');
-
-        document.getElementById('messageArea').style.whiteSpace = 'pre-line';
-
+        console.error('Error reading lab configuration data:', error);
+        showNotification(labAllocationStatus, 'Error reading lab configuration data: ' + error.message, 'error');
     }
+});
 
+labAllocatedFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    try {
+        showNotification(seatAllocationStatus, 'Reading lab allocated data...', 'info');
+        appState.labAllocationResult = await readExcelFile(file);
+        showNotification(seatAllocationStatus, 'Lab allocated data loaded successfully!', 'success');
+        allocateSeatsBtn.disabled = false;
+    } catch (error) {
+        console.error('Error reading lab allocated data:', error);
+        showNotification(seatAllocationStatus, 'Error reading lab allocated data: ' + error.message, 'error');
+    }
+});
+
+// Lab Allocation Button Click Handler
+allocateLabBtn.addEventListener('click', () => {
+    try {
+        showNotification(labAllocationStatus, 'Allocating labs...', 'info');
+        
+        // Sort candidate data
+        const sortedCandidates = sortCandidateData(appState.candidateData);
+        
+        // Sort lab configuration data
+        const sortedLabConfig = sortLabConfigData(appState.labConfigData);
+        
+        // Perform lab allocation
+        appState.labAllocationResult = allocateLabs(sortedCandidates, sortedLabConfig);
+        
+        // Display results
+        displayLabAllocationResults(appState.labAllocationResult);
+        
+        showNotification(labAllocationStatus, 'Lab allocation completed successfully!', 'success');
+        downloadLabAllocationBtn.disabled = false;
+    } catch (error) {
+        console.error('Error during lab allocation:', error);
+        showNotification(labAllocationStatus, 'Error during lab allocation: ' + error.message, 'error');
+    }
+});
+
+// Seat Allocation Button Click Handler
+allocateSeatsBtn.addEventListener('click', () => {
+    try {
+        showNotification(seatAllocationStatus, 'Allocating seats...', 'info');
+        
+        // Perform seat allocation
+        appState.seatAllocationResult = allocateSeats(appState.labAllocationResult);
+        
+        // Display results
+        displaySeatAllocationResults(appState.seatAllocationResult);
+        
+        showNotification(seatAllocationStatus, 'Seat allocation completed successfully!', 'success');
+        downloadSeatAllocationBtn.disabled = false;
+    } catch (error) {
+        console.error('Error during seat allocation:', error);
+        showNotification(seatAllocationStatus, 'Error during seat allocation: ' + error.message, 'error');
+    }
+});
+
+// Download Buttons Click Handlers
+downloadLabAllocationBtn.addEventListener('click', () => {
+    downloadExcelFile(appState.labAllocationResult, 'Lab_Allocation_Results.xlsx');
+});
+
+downloadSeatAllocationBtn.addEventListener('click', () => {
+    downloadExcelFile(appState.seatAllocationResult, 'Final_Seat_Allocation.xlsx');
+});
+
+// Helper Functions
+function checkEnableLabAllocation() {
+    allocateLabBtn.disabled = !(appState.candidateData && appState.labConfigData);
 }
 
- 
-
-// Utility function to group results
-
-function groupBy(array, key) {
-
-    return array.reduce((result, currentValue) => {
-
-        (result[currentValue[key]] = result[currentValue[key]] || []).push(currentValue);
-
-        return result;
-
-    }, {});
-
+function showNotification(element, message, type) {
+    element.innerHTML = `<div class="notification ${type}">${message}</div>`;
 }
 
- 
-
-function displayResults(results) {
-
-    const tbody = document.getElementById('resultBody');
-
-    tbody.innerHTML = '';
-
- 
-
-    results.forEach(result => {
-
-        const row = document.createElement('tr');
-
-        const columns = [
-
-            'Candidate Id', 'Candidate Email', 'Venue Code', 'Venue Name',
-
-            'City', 'Exam Date', 'Exam Day', 'Batch', 'False No',
-
-            'Building Name', 'Floor Name', 'Lab Name', 'Lab No', 'Server 1', 'Seat No'
-
-        ];
-
-       
-
-        columns.forEach(column => {
-
-            const td = document.createElement('td');
-
-            td.textContent = result[column] || '';
-
-            row.appendChild(td);
-
-        });
-
- 
-
-        tbody.appendChild(row);
-
+async function readExcelFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                if (jsonData.length < 2) {
+                    reject(new Error('File does not contain enough data'));
+                    return;
+                }
+                
+                const headers = jsonData[0];
+                const rows = jsonData.slice(1);
+                
+                const result = rows.map(row => {
+                    const obj = {};
+                    row.forEach((cell, index) => {
+                        if (index < headers.length) {
+                            obj[headers[index]] = cell;
+                        }
+                    });
+                    return obj;
+                });
+                
+                resolve(result);
+            } catch (error) {
+                reject(error);
+            }
+        };
+        
+        reader.onerror = function() {
+            reject(new Error('Failed to read file'));
+        };
+        
+        reader.readAsArrayBuffer(file);
     });
+}
 
+function sortCandidateData(data) {
+    return [...data].sort((a, b) => {
+        // Sort by City (A to Z)
+        if ((a.City || '').toLowerCase() < (b.City || '').toLowerCase()) return -1;
+        if ((a.City || '').toLowerCase() > (b.City || '').toLowerCase()) return 1;
+        
+        // Then by Venue Code (A to Z)
+        if ((a['Venue Code'] || '').toLowerCase() < (b['Venue Code'] || '').toLowerCase()) return -1;
+        if ((a['Venue Code'] || '').toLowerCase() > (b['Venue Code'] || '').toLowerCase()) return 1;
+        
+        // Then by Exam Date (earliest to latest)
+        if (a['Exam Date'] < b['Exam Date']) return -1;
+        if (a['Exam Date'] > b['Exam Date']) return 1;
+        
+        // Then by Batch (A to Z)
+        if ((a.Batch || '').toLowerCase() < (b.Batch || '').toLowerCase()) return -1;
+        if ((a.Batch || '').toLowerCase() > (b.Batch || '').toLowerCase()) return 1;
+        
+        // Then by False No (numerically)
+        const falseNoA = parseInt(a['False No'] || 0);
+        const falseNoB = parseInt(b['False No'] || 0);
+        if (!isNaN(falseNoA) && !isNaN(falseNoB)) {
+            return falseNoA - falseNoB;
+        }
+        
+        // Then by PWD (A to Z)
+        if ((a.PWD || '').toLowerCase() < (b.PWD || '').toLowerCase()) return -1;
+        if ((a.PWD || '').toLowerCase() > (b.PWD || '').toLowerCase()) return 1;
+        
+        // Then by Candidate ID (A to Z)
+        if ((a['Candidate Id'] || '').toLowerCase() < (b['Candidate Id'] || '').toLowerCase()) return -1;
+        if ((a['Candidate Id'] || '').toLowerCase() > (b['Candidate Id'] || '').toLowerCase()) return 1;
+        
+        return 0;
+    });
+}
+
+function sortLabConfigData(data) {
+    return [...data].sort((a, b) => {
+        // Sort by City (A to Z)
+        if ((a.City || '').toLowerCase() < (b.City || '').toLowerCase()) return -1;
+        if ((a.City || '').toLowerCase() > (b.City || '').toLowerCase()) return 1;
+        
+        // Then by Centre Code (A to Z)
+        if ((a['Centre Code'] || '').toLowerCase() < (b['Centre Code'] || '').toLowerCase()) return -1;
+        if ((a['Centre Code'] || '').toLowerCase() > (b['Centre Code'] || '').toLowerCase()) return 1;
+        
+        // Then by Lab No (Smallest to largest)
+        const labA = parseInt(a['Lab No'] || 0);
+        const labB = parseInt(b['Lab No'] || 0);
+        return labA - labB;
+    });
+}
+
+// function allocateLabs(candidateData, labConfigData) {
+//     // Create a deep copy of lab config data to avoid modifying the original
+//     const labConfigCopy = JSON.parse(JSON.stringify(labConfigData));
+    
+//     // Group candidates by city, venue code, date and batch
+//     const candidateGroups = {};
+//     candidateData.forEach(candidate => {
+//         const key = `${candidate.City}-${candidate['Venue Code']}-${candidate['Exam Date']}-${candidate.Batch}`;
+//         if (!candidateGroups[key]) {
+//             candidateGroups[key] = [];
+//         }
+//         candidateGroups[key].push(candidate);
+//     });
+    
+//     // DEBUG: Log all venue codes from candidates
+//     console.log('Candidate Venue Codes:', 
+//         [...new Set(candidateData.map(c => `${c.City}-${c['Venue Code']}`))]);
+    
+//     // DEBUG: Log all centre codes from lab config
+//     console.log('Lab Centre Codes:', 
+//         [...new Set(labConfigData.map(l => `${l.City}-${l['Centre Code']}`))]);
+    
+//     // Group labs by city and center code
+//     const labGroups = {};
+//     labConfigCopy.forEach(lab => {
+//         // Make sure to handle case sensitivity and trim
+//         const cityKey = (lab.City || '').trim();
+//         const centreKey = (lab['Centre Code'] || '').trim();
+//         const key = `${cityKey}-${centreKey}`;
+        
+//         if (!labGroups[key]) {
+//             labGroups[key] = [];
+//         }
+//         labGroups[key].push({
+//             ...lab, 
+//             originalCount: parseInt(lab.Count || 0),
+//             availableSeats: parseInt(lab.Count || 0)
+//         });
+//     });
+    
+//     // Allocate candidates to labs
+//     const allocatedCandidates = [];
+    
+//     // Process each group of candidates
+//     Object.keys(candidateGroups).forEach(key => {
+//         const [city, venueCode, examDate, batch] = key.split('-');
+//         const candidates = candidateGroups[key];
+        
+//         console.log(`Processing: ${city} - ${venueCode} - ${examDate} - ${batch}, Candidates: ${candidates.length}`);
+        
+//         // Find matching lab group for this city and venue code
+//         // First try direct match
+//         let labKey = Object.keys(labGroups).find(k => {
+//             const [labCity, labCentreCode] = k.split('-');
+//             return labCity === city && labCentreCode === venueCode;
+//         });
+        
+//         // If no direct match, try case-insensitive match
+//         if (!labKey) {
+//             labKey = Object.keys(labGroups).find(k => {
+//                 const [labCity, labCentreCode] = k.split('-');
+//                 return labCity.toLowerCase() === city.toLowerCase() && 
+//                        labCentreCode.toLowerCase() === venueCode.toLowerCase();
+//             });
+//         }
+        
+//         // If still no match, try matching just by Centre Code/Venue Code
+//         if (!labKey) {
+//             labKey = Object.keys(labGroups).find(k => {
+//                 const [, labCentreCode] = k.split('-');
+//                 return labCentreCode === venueCode;
+//             });
+//         }
+        
+//         console.log(`For ${city}-${venueCode}, found lab key: ${labKey}`);
+        
+//         if (!labKey || !labGroups[labKey] || labGroups[labKey].length === 0) {
+//             console.error(`Lab groups available:`, Object.keys(labGroups));
+//             throw new Error(`No labs available for candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}`);
+//         }
+        
+//         const labs = labGroups[labKey];
+        
+//         // Reset lab capacities for each new batch at this venue on this date
+//         // We'll use a more reliable key that includes city, venue, date and batch
+//         const dateAndBatchKey = `${city}-${venueCode}-${examDate}-${batch}`;
+        
+//         // Reset lab capacities for this batch
+//         labs.forEach(lab => {
+//             lab.availableSeats = lab.originalCount;
+//         });
+        
+//         console.log(`Reset capacities for ${dateAndBatchKey}, available:`, 
+//             labs.map(l => `Lab ${l['Lab No']}: ${l.availableSeats}`).join(', '));
+        
+//         // Calculate total available seats across all labs for this batch
+//         const totalAvailableSeats = labs.reduce((total, lab) => total + lab.availableSeats, 0);
+        
+//         // Check if we have enough seats for all candidates in this batch
+//         if (totalAvailableSeats < candidates.length) {
+//             throw new Error(`Not enough lab capacity for all candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}. Need ${candidates.length} seats but only ${totalAvailableSeats} available.`);
+//         }
+        
+//         // Sort labs by Lab No
+//         labs.sort((a, b) => parseInt(a['Lab No']) - parseInt(b['Lab No']));
+        
+//         // Allocate candidates sequentially across labs
+//         let currentLabIndex = 0;
+        
+//         candidates.forEach((candidate, index) => {
+//             // Find next lab with available seats
+//             while (currentLabIndex < labs.length && labs[currentLabIndex].availableSeats <= 0) {
+//                 currentLabIndex++;
+//             }
+            
+//             if (currentLabIndex >= labs.length) {
+//                 throw new Error(`Not enough lab capacity for all candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}`);
+//             }
+            
+//             const currentLab = labs[currentLabIndex];
+            
+//             // Calculate seat number within the lab
+//             // Start with seat 1 for each lab
+//             const labSeatIndex = currentLab.originalCount - currentLab.availableSeats + 1;
+            
+//             // Generate final seat number
+//             let seatNo;
+//             if (candidate['False No']) {
+//                 // Use false number as is or combine with lab seat index
+//                 seatNo = candidate['False No'];
+//             } else {
+//                 // Just use the sequential number
+//                 seatNo = labSeatIndex;
+//             }
+            
+//             // Allocate candidate to this lab
+//             allocatedCandidates.push({
+//                 ...candidate,
+//                 'Building Name': currentLab['Building Name'],
+//                 'Floor Name': currentLab['Floor Name'],
+//                 'Lab Name': currentLab['Lab Name'],
+//                 'Lab No': currentLab['Lab No'],
+//                 'Server': currentLab['Server'],
+//                 'Seat No': seatNo
+//             });
+            
+//             // Decrease available seats
+//             currentLab.availableSeats--;
+//         });
+        
+//         console.log(`Completed allocation for ${dateAndBatchKey}, remaining:`, 
+//             labs.map(l => `Lab ${l['Lab No']}: ${l.availableSeats}`).join(', '));
+//     });
+    
+//     return allocatedCandidates;
+// }
+function allocateLabs(candidateData, labConfigData) {
+    // Create a deep copy of lab config data to avoid modifying the original
+    const labConfigCopy = JSON.parse(JSON.stringify(labConfigData));
+    
+    // Group candidates by city, venue code, date and batch
+    const candidateGroups = {};
+    candidateData.forEach(candidate => {
+        const key = `${candidate.City}-${candidate['Venue Code']}-${candidate['Exam Date']}-${candidate.Batch}`;
+        if (!candidateGroups[key]) {
+            candidateGroups[key] = [];
+        }
+        candidateGroups[key].push(candidate);
+    });
+    
+    // DEBUG: Log all venue codes from candidates
+    console.log('Candidate Venue Codes:', 
+        [...new Set(candidateData.map(c => `${c.City}-${c['Venue Code']}`))]);
+    
+    // DEBUG: Log all centre codes from lab config
+    console.log('Lab Centre Codes:', 
+        [...new Set(labConfigData.map(l => `${l.City}-${l['Centre Code']}`))]);
+    
+    // Group labs by city and center code
+    const labGroups = {};
+    labConfigCopy.forEach(lab => {
+        // Make sure to handle case sensitivity and trim
+        const cityKey = (lab.City || '').trim();
+        const centreKey = (lab['Centre Code'] || '').trim();
+        const key = `${cityKey}-${centreKey}`;
+        
+        if (!labGroups[key]) {
+            labGroups[key] = [];
+        }
+        labGroups[key].push({
+            ...lab, 
+            originalCount: parseInt(lab.Count || 0),
+            availableSeats: parseInt(lab.Count || 0)
+        });
+    });
+    
+    // Allocate candidates to labs
+    const allocatedCandidates = [];
+    
+    // Process each group of candidates
+    Object.keys(candidateGroups).forEach(key => {
+        const [city, venueCode, examDate, batch] = key.split('-');
+        const candidates = candidateGroups[key];
+        
+        console.log(`Processing: ${city} - ${venueCode} - ${examDate} - ${batch}, Candidates: ${candidates.length}`);
+        
+        // Find matching lab group for this city and venue code
+        // First try direct match
+        let labKey = Object.keys(labGroups).find(k => {
+            const [labCity, labCentreCode] = k.split('-');
+            return labCity === city && labCentreCode === venueCode;
+        });
+        
+        // If no direct match, try case-insensitive match
+        if (!labKey) {
+            labKey = Object.keys(labGroups).find(k => {
+                const [labCity, labCentreCode] = k.split('-');
+                return labCity.toLowerCase() === city.toLowerCase() && 
+                       labCentreCode.toLowerCase() === venueCode.toLowerCase();
+            });
+        }
+        
+        // If still no match, try matching just by Centre Code/Venue Code
+        if (!labKey) {
+            labKey = Object.keys(labGroups).find(k => {
+                const [, labCentreCode] = k.split('-');
+                return labCentreCode === venueCode;
+            });
+        }
+        
+        console.log(`For ${city}-${venueCode}, found lab key: ${labKey}`);
+        
+        if (!labKey || !labGroups[labKey] || labGroups[labKey].length === 0) {
+            console.error(`Lab groups available:`, Object.keys(labGroups));
+            throw new Error(`No labs available for candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}`);
+        }
+        
+        const labs = labGroups[labKey];
+        
+        // Reset lab capacities for each new batch at this venue on this date
+        labs.forEach(lab => {
+            lab.availableSeats = lab.originalCount;
+        });
+        
+        console.log(`Reset capacities for ${city}-${venueCode}-${examDate}-${batch}, available:`, 
+            labs.map(l => `Lab ${l['Lab No']}: ${l.availableSeats}`).join(', '));
+        
+        // Calculate total available seats across all labs for this batch
+        const totalAvailableSeats = labs.reduce((total, lab) => total + lab.availableSeats, 0);
+        
+        // Check if we have enough seats for all candidates in this batch
+        if (totalAvailableSeats < candidates.length) {
+            throw new Error(`Not enough lab capacity for all candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}. Need ${candidates.length} seats but only ${totalAvailableSeats} available.`);
+        }
+        
+        // Sort labs by Lab No
+        labs.sort((a, b) => parseInt(a['Lab No']) - parseInt(b['Lab No']));
+        
+        // Allocate candidates sequentially across labs
+        let currentLabIndex = 0;
+        let seatCounterGlobal = 1; // Global counter across all labs
+        
+        // Lab-specific seat counters
+        const labSeatCounters = {};
+        labs.forEach(lab => {
+            labSeatCounters[lab['Lab No']] = 1;
+        });
+        
+        candidates.forEach((candidate, index) => {
+            // Find next lab with available seats
+            while (currentLabIndex < labs.length && labs[currentLabIndex].availableSeats <= 0) {
+                currentLabIndex++;
+            }
+            
+            if (currentLabIndex >= labs.length) {
+                throw new Error(`Not enough lab capacity for all candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}`);
+            }
+            
+            const currentLab = labs[currentLabIndex];
+            const labNumber = currentLab['Lab No'];
+            
+            // Get the current seat counter for this lab
+            const labSeatCounter = labSeatCounters[labNumber];
+            
+            // Generate seat number in format falsenumber_sequence
+            let seatNo;
+            if (candidate['False No']) {
+                seatNo = `${candidate['False No']}_${labSeatCounter}`;
+            } else {
+                seatNo = labSeatCounter.toString();
+            }
+            
+            // Allocate candidate to this lab
+            allocatedCandidates.push({
+                ...candidate,
+                'Building Name': currentLab['Building Name'],
+                'Floor Name': currentLab['Floor Name'],
+                'Lab Name': currentLab['Lab Name'],
+                'Lab No': currentLab['Lab No'],
+                'Server': currentLab['Server'],
+                'Seat No': seatNo
+            });
+            
+            // Decrease available seats and increment counters
+            currentLab.availableSeats--;
+            labSeatCounters[labNumber]++;
+            seatCounterGlobal++;
+        });
+        
+        console.log(`Completed allocation for ${city}-${venueCode}-${examDate}-${batch}, remaining:`, 
+            labs.map(l => `Lab ${l['Lab No']}: ${l.availableSeats}`).join(', '));
+    });
+    
+    return allocatedCandidates;
+}
+
+// Also update the seat allocation function to maintain the format
+function allocateSeats(labAllocatedData) {
+    // Group candidates by City, Venue, Date, Batch, Lab
+    const labGroups = {};
+    labAllocatedData.forEach(candidate => {
+        const key = `${candidate.City}-${candidate['Venue Code']}-${candidate['Exam Date']}-${candidate.Batch}-${candidate['Lab No']}`;
+        if (!labGroups[key]) {
+            labGroups[key] = [];
+        }
+        labGroups[key].push(candidate);
+    });
+    
+    // Allocate seat numbers within each lab
+    const finalAllocatedCandidates = [];
+    
+    Object.keys(labGroups).forEach(key => {
+        const candidates = labGroups[key];
+        const labNo = key.split('-')[4]; // Get the Lab No from the key
+        
+        // Sort candidates by False No if available
+        const sortedCandidates = candidates.sort((a, b) => {
+            const falseNoA = parseInt(a['False No'] || 0);
+            const falseNoB = parseInt(b['False No'] || 0);
+            if (!isNaN(falseNoA) && !isNaN(falseNoB)) {
+                return falseNoA - falseNoB;
+            }
+            return 0;
+        });
+        
+        // Assign seat numbers sequentially
+        sortedCandidates.forEach((candidate, index) => {
+            // If candidate already has a proper Seat No, use that, otherwise assign a new one
+            let seatNo = candidate['Seat No'];
+            if (!seatNo || seatNo === undefined) {
+                const seatIndex = index + 1;
+                if (candidate['False No']) {
+                    seatNo = `${candidate['False No']}_${seatIndex}`;
+                } else {
+                    seatNo = seatIndex.toString();
+                }
+            }
+            
+            finalAllocatedCandidates.push({
+                ...candidate,
+                'Seat No': seatNo
+            });
+        });
+    });
+    
+    // Sort the final result
+    return sortCandidateData(finalAllocatedCandidates);
+}
+function allocateSeats(labAllocatedData) {
+    // Group candidates by City, Venue, Date, Batch, Lab
+    const labGroups = {};
+    labAllocatedData.forEach(candidate => {
+        const key = `${candidate.City}-${candidate['Venue Code']}-${candidate['Exam Date']}-${candidate.Batch}-${candidate['Lab No']}`;
+        if (!labGroups[key]) {
+            labGroups[key] = [];
+        }
+        labGroups[key].push(candidate);
+    });
+    
+    // Allocate seat numbers within each lab
+    const finalAllocatedCandidates = [];
+    
+    Object.keys(labGroups).forEach(key => {
+        const candidates = labGroups[key];
+        
+        // Sort candidates by False No if available
+        const sortedCandidates = candidates.sort((a, b) => {
+            const falseNoA = parseInt(a['False No'] || 0);
+            const falseNoB = parseInt(b['False No'] || 0);
+            if (!isNaN(falseNoA) && !isNaN(falseNoB)) {
+                return falseNoA - falseNoB;
+            }
+            return 0;
+        });
+        
+        // Assign seat numbers sequentially
+        sortedCandidates.forEach((candidate, index) => {
+            // If candidate already has a Seat No, use that, otherwise assign a new one
+            let seatNo = candidate['Seat No'];
+            if (!seatNo) {
+                if (candidate['False No']) {
+                    seatNo = candidate['False No'];
+                } else {
+                    seatNo = index + 1;
+                }
+            }
+            
+            finalAllocatedCandidates.push({
+                ...candidate,
+                'Seat No': seatNo
+            });
+        });
+    });
+    
+    // Sort the final result
+    return sortCandidateData(finalAllocatedCandidates);
+}
+
+function displayLabAllocationResults(data) {
+    if (!data || data.length === 0) {
+        labAllocationResults.innerHTML = '<p>No results to display.</p>';
+        return;
+    }
+    
+    const headers = [
+        'Candidate Id', 'Candidate Email', 'Venue Code', 'Venue Name', 
+        'City', 'Exam Date', 'Exam Day', 'Batch', 'False No', 'PWD', 
+        'Building Name', 'Floor Name', 'Lab Name', 'Lab No', 'Server', 'Seat No'
+    ];
+    
+    let tableHtml = '<table><thead><tr>';
+    headers.forEach(header => {
+        tableHtml += `<th>${header}</th>`;
+    });
+    tableHtml += '</tr></thead><tbody>';
+    
+    data.forEach(row => {
+        tableHtml += '<tr>';
+        headers.forEach(header => {
+            tableHtml += `<td>${row[header] !== undefined ? row[header] : ''}</td>`;
+        });
+        tableHtml += '</tr>';
+    });
+    
+    tableHtml += '</tbody></table>';
+    labAllocationResults.innerHTML = tableHtml;
+}
+
+function displaySeatAllocationResults(data) {
+    if (!data || data.length === 0) {
+        seatAllocationResults.innerHTML = '<p>No results to display.</p>';
+        return;
+    }
+    
+    const headers = [
+        'Candidate Id', 'Candidate Email', 'Venue Code', 'Venue Name', 
+        'City', 'Exam Date', 'Exam Day', 'Batch', 'False No', 'PWD', 
+        'Building Name', 'Floor Name', 'Lab Name', 'Lab No', 'Server', 'Seat No'
+    ];
+    
+    let tableHtml = '<table><thead><tr>';
+    headers.forEach(header => {
+        tableHtml += `<th>${header}</th>`;
+    });
+    tableHtml += '</tr></thead><tbody>';
+    
+    data.forEach(row => {
+        tableHtml += '<tr>';
+        headers.forEach(header => {
+            tableHtml += `<td>${row[header] !== undefined ? row[header] : ''}</td>`;
+        });
+        tableHtml += '</tr>';
+    });
+    
+    tableHtml += '</tbody></table>';
+    seatAllocationResults.innerHTML = tableHtml;
 }
 
 
-
-
-
-function downloadResults() {
-
-    const table = document.getElementById('resultTable');
-
-    const ws = XLSX.utils.table_to_sheet(table);
-
-    const wb = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Seat Allocation');
-
-    XLSX.writeFile(wb, 'seat_allocation_results.xlsx');
-
+function downloadExcelFile(data, filename) {
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    XLSX.writeFile(workbook, filename);
 }
-
-

@@ -1,132 +1,75 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Seat Allocation System</title>
-
-    <link rel="stylesheet" href="styles.css">
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
+    <title>Automated Exam Seat Allocation System</title>
+    <link rel="stylesheet" href="seatstyles.css">
 </head>
-
 <body>
-    <nav class="nav-panel">
-        <ul class="nav-list">
-            <li><a href="index.html">Home</a></li>
-            <!-- <li><a href="#operations">Operations</a></li>
-            <li><a href="#reports">Reports</a></li>
-            <li><a href="#settings">Settings</a></li>
-            <li><a href="#help">Help</a></li> -->
-        </ul>
-    </nav>
-
-
+    <header>
+        <h1>Automated Exam Seat Allocation System</h1>
+        <p>Upload candidate and lab configuration data to automatically allocate labs and seats</p>
+    </header>
+    
     <div class="container">
-
-        <h1>Exam Seat Allocation System</h1>
-
-       
-
-        <div class="upload-section">
-
-            <div class="file-input">
-
-                <h3>Upload Candidate Data</h3>
-
-                <input type="file" id="candidateFile" accept=".xlsx,.xls">
-
+        <!-- Left Panel: Lab Allocation -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Lab Allocation</h2>
             </div>
-
-           
-
-            <div class="file-input">
-
-                <h3>Upload Lab Configuration</h3>
-
-                <input type="file" id="labFile" accept=".xlsx,.xls">
-
+            
+            <div class="file-input-container">
+                <label class="file-input-label" for="candidateFile">Candidate Data (.xlsx):</label>
+                <input type="file" id="candidateFile" class="file-input" accept=".xlsx, .xls">
             </div>
-
+            
+            <div class="file-input-container">
+                <label class="file-input-label" for="labConfigFile">Lab Configuration Data (.xlsx):</label>
+                <input type="file" id="labConfigFile" class="file-input" accept=".xlsx, .xls">
+            </div>
+            
+            <button id="allocateLabBtn" class="btn" disabled>Allocate Labs</button>
+            
+            <div id="labAllocationStatus"></div>
+            
+            <div class="results-container">
+                <h3>Lab Allocation Results</h3>
+                <div id="labAllocationResults">
+                    <p>Upload files and click "Allocate Labs" to begin processing.</p>
+                </div>
+            </div>
+            
+            <button id="downloadLabAllocationBtn" class="btn download-btn" disabled>Download Lab Allocation</button>
         </div>
-
- 
-
-        <button id="processButton" disabled>Process Allocation</button>
-
- 
-
-        <div class="results-section">
-
-            <div id="messageArea"></div>
-
-            <div class="table-container">
-
-                <table id="resultTable" style="display: none;">
-
-                    <thead>
-
-                        <tr>
-
-                            <th>Candidate Id</th>
-
-                            <th>Candidate Email</th>
-
-                            <th>Venue Code</th>
-
-                            <th>Venue Name</th>
-
-                            <th>City</th>
-
-                            <th>Exam Date</th>
-
-                            <th>Exam Day</th>
-
-                            <th>Batch</th>
-
-                            <th>False No</th>
-
-                            <th>Building Name</th>
-
-                            <th>Floor Name</th>
-
-                            <th>Lab Name</th>
-
-                            <th>Lab No</th>
-
-                            <th>Server 1</th>
-
-                            <th>Seat No</th>
-
-                        </tr>
-
-                    </thead>
-
-                    <tbody id="resultBody"></tbody>
-
-                </table>
-
+        
+        <!-- Right Panel: Seat Allocation -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Seat Number Allocation</h2>
             </div>
-
-            <button id="downloadButton" style="display: none;">Download Results</button>
-
+            
+            <div class="file-input-container">
+                <label class="file-input-label" for="labAllocatedFile">Lab Allocated Data (.xlsx):</label>
+                <input type="file" id="labAllocatedFile" class="file-input" accept=".xlsx, .xls">
+            </div>
+            
+            <button id="allocateSeatsBtn" class="btn" disabled>Allocate Seats</button>
+            
+            <div id="seatAllocationStatus"></div>
+            
+            <div class="results-container">
+                <h3>Seat Allocation Results</h3>
+                <div id="seatAllocationResults">
+                    <p>Upload lab-allocated data file and click "Allocate Seats" to begin processing.</p>
+                </div>
+            </div>
+            
+            <button id="downloadSeatAllocationBtn" class="btn download-btn" disabled>Download Final Allocation</button>
         </div>
-
     </div>
 
-    <script src="seat_script.js"></script>
-    <!-- Footer -->
-    <footer class="footer">
-        <p>&copy; 2025 Back End Operations Dashboard. All rights reserved.</p>
-    </footer>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="st.js"></script>
 </body>
-
 </html>
-
