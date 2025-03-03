@@ -225,162 +225,7 @@ const appState = {
     })
   }
   
-  // function allocateLabs(candidateData, labConfigData) {
-  //     // Create a deep copy of lab config data to avoid modifying the original
-  //     const labConfigCopy = JSON.parse(JSON.stringify(labConfigData));
   
-  //     // Group candidates by city, venue code, date and batch
-  //     const candidateGroups = {};
-  //     candidateData.forEach(candidate => {
-  //         const key = `${candidate.City}-${candidate['Venue Code']}-${candidate['Exam Date']}-${candidate.Batch}`;
-  //         if (!candidateGroups[key]) {
-  //             candidateGroups[key] = [];
-  //         }
-  //         candidateGroups[key].push(candidate);
-  //     });
-  
-  //     // DEBUG: Log all venue codes from candidates
-  //     console.log('Candidate Venue Codes:',
-  //         [...new Set(candidateData.map(c => `${c.City}-${c['Venue Code']}`))]);
-  
-  //     // DEBUG: Log all centre codes from lab config
-  //     console.log('Lab Centre Codes:',
-  //         [...new Set(labConfigData.map(l => `${l.City}-${l['Centre Code']}`))]);
-  
-  //     // Group labs by city and center code
-  //     const labGroups = {};
-  //     labConfigCopy.forEach(lab => {
-  //         // Make sure to handle case sensitivity and trim
-  //         const cityKey = (lab.City || '').trim();
-  //         const centreKey = (lab['Centre Code'] || '').trim();
-  //         const key = `${cityKey}-${centreKey}`;
-  
-  //         if (!labGroups[key]) {
-  //             labGroups[key] = [];
-  //         }
-  //         labGroups[key].push({
-  //             ...lab,
-  //             originalCount: parseInt(lab.Count || 0),
-  //             availableSeats: parseInt(lab.Count || 0)
-  //         });
-  //     });
-  
-  //     // Allocate candidates to labs
-  //     const allocatedCandidates = [];
-  
-  //     // Process each group of candidates
-  //     Object.keys(candidateGroups).forEach(key => {
-  //         const [city, venueCode, examDate, batch] = key.split('-');
-  //         const candidates = candidateGroups[key];
-  
-  //         console.log(`Processing: ${city} - ${venueCode} - ${examDate} - ${batch}, Candidates: ${candidates.length}`);
-  
-  //         // Find matching lab group for this city and venue code
-  //         // First try direct match
-  //         let labKey = Object.keys(labGroups).find(k => {
-  //             const [labCity, labCentreCode] = k.split('-');
-  //             return labCity === city && labCentreCode === venueCode;
-  //         });
-  
-  //         // If no direct match, try case-insensitive match
-  //         if (!labKey) {
-  //             labKey = Object.keys(labGroups).find(k => {
-  //                 const [labCity, labCentreCode] = k.split('-');
-  //                 return labCity.toLowerCase() === city.toLowerCase() &&
-  //                        labCentreCode.toLowerCase() === venueCode.toLowerCase();
-  //             });
-  //         }
-  
-  //         // If still no match, try matching just by Centre Code/Venue Code
-  //         if (!labKey) {
-  //             labKey = Object.keys(labGroups).find(k => {
-  //                 const [, labCentreCode] = k.split('-');
-  //                 return labCentreCode === venueCode;
-  //             });
-  //         }
-  
-  //         console.log(`For ${city}-${venueCode}, found lab key: ${labKey}`);
-  
-  //         if (!labKey || !labGroups[labKey] || labGroups[labKey].length === 0) {
-  //             console.error(`Lab groups available:`, Object.keys(labGroups));
-  //             throw new Error(`No labs available for candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}`);
-  //         }
-  
-  //         const labs = labGroups[labKey];
-  
-  //         // Reset lab capacities for each new batch at this venue on this date
-  //         // We'll use a more reliable key that includes city, venue, date and batch
-  //         const dateAndBatchKey = `${city}-${venueCode}-${examDate}-${batch}`;
-  
-  //         // Reset lab capacities for this batch
-  //         labs.forEach(lab => {
-  //             lab.availableSeats = lab.originalCount;
-  //         });
-  
-  //         console.log(`Reset capacities for ${dateAndBatchKey}, available:`,
-  //             labs.map(l => `Lab ${l['Lab No']}: ${l.availableSeats}`).join(', '));
-  
-  //         // Calculate total available seats across all labs for this batch
-  //         const totalAvailableSeats = labs.reduce((total, lab) => total + lab.availableSeats, 0);
-  
-  //         // Check if we have enough seats for all candidates in this batch
-  //         if (totalAvailableSeats < candidates.length) {
-  //             throw new Error(`Not enough lab capacity for all candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}. Need ${candidates.length} seats but only ${totalAvailableSeats} available.`);
-  //         }
-  
-  //         // Sort labs by Lab No
-  //         labs.sort((a, b) => parseInt(a['Lab No']) - parseInt(b['Lab No']));
-  
-  //         // Allocate candidates sequentially across labs
-  //         let currentLabIndex = 0;
-  
-  //         candidates.forEach((candidate, index) => {
-  //             // Find next lab with available seats
-  //             while (currentLabIndex < labs.length && labs[currentLabIndex].availableSeats <= 0) {
-  //                 currentLabIndex++;
-  //             }
-  
-  //             if (currentLabIndex >= labs.length) {
-  //                 throw new Error(`Not enough lab capacity for all candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}`);
-  //             }
-  
-  //             const currentLab = labs[currentLabIndex];
-  
-  //             // Calculate seat number within the lab
-  //             // Start with seat 1 for each lab
-  //             const labSeatIndex = currentLab.originalCount - currentLab.availableSeats + 1;
-  
-  //             // Generate final seat number
-  //             let seatNo;
-  //             if (candidate['False No']) {
-  //                 // Use false number as is or combine with lab seat index
-  //                 seatNo = candidate['False No'];
-  //             } else {
-  //                 // Just use the sequential number
-  //                 seatNo = labSeatIndex;
-  //             }
-  
-  //             // Allocate candidate to this lab
-  //             allocatedCandidates.push({
-  //                 ...candidate,
-  //                 'Building Name': currentLab['Building Name'],
-  //                 'Floor Name': currentLab['Floor Name'],
-  //                 'Lab Name': currentLab['Lab Name'],
-  //                 'Lab No': currentLab['Lab No'],
-  //                 'Server': currentLab['Server'],
-  //                 'Seat No': seatNo
-  //             });
-  
-  //             // Decrease available seats
-  //             currentLab.availableSeats--;
-  //         });
-  
-  //         console.log(`Completed allocation for ${dateAndBatchKey}, remaining:`,
-  //             labs.map(l => `Lab ${l['Lab No']}: ${l.availableSeats}`).join(', '));
-  //     });
-  
-  //     return allocatedCandidates;
-  // }
   function allocateLabs(candidateData, labConfigData) {
     // Create a deep copy of lab config data to avoid modifying the original
     const labConfigCopy = JSON.parse(JSON.stringify(labConfigData))
@@ -530,7 +375,7 @@ const appState = {
           "Lab Name": currentLab["Lab Name"],
           "Lab No": currentLab["Lab No"],
           Server: currentLab["Server"],
-          "Seat No": seatNo,
+          // "Seat No": seatNo,
         })
   
         // Decrease available seats and increment counters
@@ -548,144 +393,7 @@ const appState = {
     return allocatedCandidates
   }
  
-  // Also update the seat allocation function to maintain the format
-  // Replace the current allocateSeats function with this updated version:
-  // function allocateLabs(candidateData, labConfigData) {
-  //   // Create a deep copy of lab config data to avoid modifying the original
-  //   const labConfigCopy = JSON.parse(JSON.stringify(labConfigData))
-  
-  //   // Group candidates by city, venue code, date and batch
-  //   const candidateGroups = {}
-  //   candidateData.forEach((candidate) => {
-  //     const key = `${candidate.City}-${candidate["Venue Code"]}-${candidate["Exam Date"]}-${candidate.Batch}`
-  //     if (!candidateGroups[key]) {
-  //       candidateGroups[key] = []
-  //     }
-  //     candidateGroups[key].push(candidate)
-  //   })
-  
-  //   // Group labs by city and center code
-  //   const labGroups = {}
-  //   labConfigCopy.forEach((lab) => {
-  //     const cityKey = (lab.City || "").trim()
-  //     const centreKey = (lab["Centre Code"] || "").trim()
-  //     const key = `${cityKey}-${centreKey}`
-  
-  //     if (!labGroups[key]) {
-  //       labGroups[key] = []
-  //     }
-  //     labGroups[key].push({
-  //       ...lab,
-  //       originalCount: Number.parseInt(lab.Count || 0),
-  //       availableSeats: Number.parseInt(lab.Count || 0),
-  //     })
-  //   })
-  
-  //   // Allocate candidates to labs
-  //   const allocatedCandidates = []
-  
-  //   // Process each group of candidates
-  //   Object.keys(candidateGroups).forEach((key) => {
-  //     const [city, venueCode, examDate, batch] = key.split("-")
-  //     const candidates = candidateGroups[key]
-  
-  //     console.log(`Processing: ${city} - ${venueCode} - ${examDate} - ${batch}, Candidates: ${candidates.length}`)
-  
-  //     // Find matching lab group
-  //     let labKey = Object.keys(labGroups).find((k) => {
-  //       const [labCity, labCentreCode] = k.split("-")
-  //       return labCity === city && labCentreCode === venueCode
-  //     })
-  
-  //     if (!labKey) {
-  //       labKey = Object.keys(labGroups).find((k) => {
-  //         const [labCity, labCentreCode] = k.split("-")
-  //         return labCity.toLowerCase() === city.toLowerCase() && 
-  //                labCentreCode.toLowerCase() === venueCode.toLowerCase()
-  //       })
-  //     }
-  
-  //     if (!labKey) {
-  //       labKey = Object.keys(labGroups).find((k) => {
-  //         const [, labCentreCode] = k.split("-")
-  //         return labCentreCode === venueCode
-  //       })
-  //     }
-  
-  //     if (!labKey || !labGroups[labKey] || labGroups[labKey].length === 0) {
-  //       console.error(`Lab groups available:`, Object.keys(labGroups))
-  //       throw new Error(
-  //         `No labs available for candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}`
-  //       )
-  //     }
-  
-  //     const labs = labGroups[labKey]
-  
-  //     // Reset lab capacities for each new batch
-  //     labs.forEach((lab) => {
-  //       lab.availableSeats = lab.originalCount
-  //     })
-  
-  //     // Calculate total available seats
-  //     const totalAvailableSeats = labs.reduce((total, lab) => total + lab.availableSeats, 0)
-  
-  //     // Check if we have enough seats
-  //     if (totalAvailableSeats < candidates.length) {
-  //       throw new Error(
-  //         `Not enough lab capacity for all candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}. Need ${candidates.length} seats but only ${totalAvailableSeats} available.`
-  //       )
-  //     }
-  
-  //     // Sort labs by Lab No
-  //     labs.sort((a, b) => Number.parseInt(a["Lab No"]) - Number.parseInt(b["Lab No"]))
-  
-  //     // Allocate candidates sequentially across labs
-  //     let currentLabIndex = 0
-      
-  //     // Use a single counter per batch that continues across all labs
-  //     let batchSeatCounter = 1
-      
-  //     candidates.forEach((candidate) => {
-  //       // Find next lab with available seats
-  //       while (currentLabIndex < labs.length && labs[currentLabIndex].availableSeats <= 0) {
-  //         currentLabIndex++
-  //       }
-  
-  //       if (currentLabIndex >= labs.length) {
-  //         throw new Error(
-  //           `Not enough lab capacity for all candidates in ${city} at venue ${venueCode} for batch ${batch} on ${examDate}`
-  //         )
-  //       }
-  
-  //       const currentLab = labs[currentLabIndex]
-  
-  //       // Generate seat number using the batch-level counter
-  //       let seatNo
-  //       if (candidate["False No"]) {
-  //         seatNo = `${candidate["False No"]}_${batchSeatCounter}`
-  //       } else {
-  //         seatNo = batchSeatCounter.toString()
-  //       }
-  
-  //       // Allocate candidate to this lab
-  //       allocatedCandidates.push({
-  //         ...candidate,
-  //         "Building Name": currentLab["Building Name"],
-  //         "Floor Name": currentLab["Floor Name"],
-  //         "Lab Name": currentLab["Lab Name"],
-  //         "Lab No": currentLab["Lab No"],
-  //         "Server": currentLab["Server"],
-  //         "Seat No": seatNo,
-  //       })
-  
-  //       // Decrease available seats and increment batch counter
-  //       currentLab.availableSeats--
-  //       batchSeatCounter++ // This counter is never reset within a batch
-  //     })
-  //   })
-  
-  //   return allocatedCandidates
-  // }
+ 
   function displayLabAllocationResults(data) {
     if (!data || data.length === 0) {
       labAllocationResults.innerHTML = "<p>No results to display.</p>"
@@ -708,7 +416,7 @@ const appState = {
       "Lab Name",
       "Lab No",
       "Server",
-      "Seat No",
+      // "Seat No",
     ]
   
     let tableHtml = "<table><thead><tr>"
@@ -751,7 +459,7 @@ const appState = {
       "Lab Name",
       "Lab No",
       "Server",
-      "Seat No",
+      // "Seat No",
     ]
   
     let tableHtml = "<table><thead><tr>"
