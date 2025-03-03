@@ -129,7 +129,8 @@ async function readExcelFile(file) {
         const workbook = XLSX.read(data, { type: "array" })
         const sheetName = workbook.SheetNames[0]
         const worksheet = workbook.Sheets[sheetName]
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+        //const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false })
 
         if (jsonData.length < 2) {
           reject(new Error("File does not contain enough data"))
