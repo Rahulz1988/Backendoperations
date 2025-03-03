@@ -432,7 +432,8 @@ function allocateSeats(labAllocatedData) {
       
       // Assign the seat number with the appropriate format
       if (candidate["False No"]) {
-        candidate["Seat No"] = `${candidate["False No"]}_${currentCounter}`
+        // candidate["Seat No"] = `${candidate["False No"]}_${currentCounter}`
+        candidate["Seat No"] = `${currentCounter}`
       } else {
         candidate["Seat No"] = currentCounter.toString()
       }
