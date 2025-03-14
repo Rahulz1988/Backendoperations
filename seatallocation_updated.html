@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated Exam Seat Allocation System</title>
+    <link rel="stylesheet" href="seatstyles.css">
+</head>
+<body>
+    <header>
+        <h1>Automated Exam Seat Allocation System</h1>
+        <p>Upload candidate and lab configuration data to automatically allocate labs and seats</p>
+    </header>
+    
+    <div class="container">
+        <!-- Single Panel: Combined Allocation -->
+        <div class="panel wide-panel">
+            <div class="panel-header">
+                <h2>Exam Seat Allocation</h2>
+            </div>
+            
+            <div class="file-input-container">
+                <label class="file-input-label" for="candidateFile">Candidate Data (.xlsx):</label>
+                <input type="file" id="candidateFile" class="file-input" accept=".xlsx, .xls">
+            </div>
+            
+            <div class="file-input-container">
+                <label class="file-input-label" for="labConfigFile">Lab Configuration Data (.xlsx):</label>
+                <input type="file" id="labConfigFile" class="file-input" accept=".xlsx, .xls">
+            </div>
+            
+            <button id="allocateSeatsBtn" class="btn" disabled>Allocate Seats</button>
+            
+            <div id="allocationStatus"></div>
+            
+            <div class="results-container">
+                <h3>Allocation Results</h3>
+                <div id="allocationResults">
+                    <p>Upload files and click "Allocate Seats" to begin processing.</p>
+                </div>
+            </div>
+            
+            <button id="downloadFinalAllocationBtn" class="btn download-btn" disabled>Download Final Allocation</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="seat_script_updated.js"></script>
+</body>
+</html>
