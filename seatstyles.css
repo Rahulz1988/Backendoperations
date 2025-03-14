@@ -1,3 +1,13 @@
+
+/* Common Variables */
+:root {
+    --primary-green: #2e7d32;
+    --light-green: #4caf50;
+    --hover-green: #1b5e20;
+    --cream: #fff8e1;
+    --light-cream: #fffdf7;
+    --border-cream: #ffe0b2;
+}
 * {
     box-sizing: border-box;
     margin: 0;
@@ -6,8 +16,13 @@
 }
 
 body {
-    padding: 20px;
-    background-color: #f5f5f5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    background-color: var(--cream);
+    margin: 0;
 }
 
 header {
@@ -145,7 +160,44 @@ tr:nth-child(even) {
     color: #31708f;
     border: 1px solid #bce8f1;
 }
+/* Navigation Panel */
+.nav-panel {
+    background-color: var(--primary-green);
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
+.nav-list {
+    display: flex;
+    list-style: none;
+    gap: 2rem;
+}
+
+.nav-list a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.nav-list a:hover {
+    background-color: var(--hover-green);
+}
+/* Footer Styles */
+.footer {
+    margin-top: auto;
+    background-color: var(--primary-green);
+    color: white;
+    text-align: center;
+    padding: 1rem;
+    width: 100%;
+}
+
+.footer p {
+    margin: 0;
+}
 /* Responsive adjustments */
 @media screen and (max-width: 768px) {
     .container {
