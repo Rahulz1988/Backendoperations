@@ -62,7 +62,7 @@ const appState = {
       appState.finalAllocationResult = allocateSeats(labAllocationResult)
   
       // Display final results
-      displayAllocationResults(appState.finalAllocationResult)
+      //displayAllocationResults(appState.finalAllocationResult)
   
       showNotification(allocationStatus, "Lab and seat allocation completed successfully!", "success")
       downloadFinalAllocationBtn.disabled = false
@@ -500,49 +500,49 @@ function allocateSeats(labAllocatedData) {
   return data
 }
 
-function displayAllocationResults(data) {
-  if (!data || data.length === 0) {
-    allocationResults.innerHTML = "<p>No results to display.</p>"
-    return
-  }
+// function displayAllocationResults(data) {
+//   if (!data || data.length === 0) {
+//     allocationResults.innerHTML = "<p>No results to display.</p>"
+//     return
+//   }
 
-  // Headers for the results table
-  const headers = [
-    "Candidate Id",
-    "Candidate Email",
-    "Venue Code",
-    "Venue Name",
-    "City",
-    "Exam Date",
-    "Exam Day",
-    "Batch",
-    "False No",
-    "PWD",
-    "Building Name",
-    "Floor Name",
-    "Lab Name",
-    "Lab No",
-    "Server",
-    "Seat No",
-  ]
+//   // Headers for the results table
+//   const headers = [
+//     "Candidate Id",
+//     "Candidate Email",
+//     "Venue Code",
+//     "Venue Name",
+//     "City",
+//     "Exam Date",
+//     "Exam Day",
+//     "Batch",
+//     "False No",
+//     "PWD",
+//     "Building Name",
+//     "Floor Name",
+//     "Lab Name",
+//     "Lab No",
+//     "Server",
+//     "Seat No",
+//   ]
 
-  let tableHtml = "<table><thead><tr>"
-  headers.forEach((header) => {
-    tableHtml += `<th>${header}</th>`
-  })
-  tableHtml += "</tr></thead><tbody>"
+//   let tableHtml = "<table><thead><tr>"
+//   headers.forEach((header) => {
+//     tableHtml += `<th>${header}</th>`
+//   })
+//   tableHtml += "</tr></thead><tbody>"
 
-  data.forEach((row) => {
-    tableHtml += "<tr>"
-    headers.forEach((header) => {
-      tableHtml += `<td>${row[header] !== undefined ? row[header] : ""}</td>`
-    })
-    tableHtml += "</tr>"
-  })
+//   data.forEach((row) => {
+//     tableHtml += "<tr>"
+//     headers.forEach((header) => {
+//       tableHtml += `<td>${row[header] !== undefined ? row[header] : ""}</td>`
+//     })
+//     tableHtml += "</tr>"
+//   })
 
-  tableHtml += "</tbody></table>"
-  allocationResults.innerHTML = tableHtml
-}
+//   tableHtml += "</tbody></table>"
+//   allocationResults.innerHTML = tableHtml
+// }
 
 function downloadExcelFile(data, filename) {
   const worksheet = XLSX.utils.json_to_sheet(data)
