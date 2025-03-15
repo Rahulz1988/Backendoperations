@@ -72,15 +72,7 @@ const appState = {
     }
   })
   
-  // Download Button Click Handler
-//   downloadFinalAllocationBtn.addEventListener("click", () => {
-//     // Download the original processed data
-//     downloadExcelFile(appState.finalAllocationResult, "Final_Seat_Allocation.xlsx")
-    
-//     // Generate and download the consolidated Playcard details
-//     const playcardData = generatePlaycardDetails(appState.finalAllocationResult)
-//     downloadExcelFile(playcardData, "Playcard_Details.xlsx")
-//   })
+  
   // Download Button Click Handler
 downloadFinalAllocationBtn.addEventListener("click", () => {
     try {
@@ -89,7 +81,7 @@ downloadFinalAllocationBtn.addEventListener("click", () => {
       
       // Generate and download the consolidated Playcard details
       const playcardData = generatePlaycardDetails(appState.finalAllocationResult)
-      downloadExcelFile(playcardData, "Playcard_Details.xlsx")
+      downloadExcelFile(playcardData, "Placard_Details.xlsx")
       
       // Disable the download button after successful download
       downloadFinalAllocationBtn.disabled = true;
