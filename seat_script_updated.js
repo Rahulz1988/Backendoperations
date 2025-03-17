@@ -373,7 +373,8 @@ function generatePlaycardDetails(data) {
         "Floor Name": candidate["Floor Name"], 
         "Lab Name": candidate["Lab Name"],
         "Lab No": candidate["Lab No"],
-        "Server": candidate["Server"]
+        "Server": candidate["Server"],
+        "Exam Day": candidate["Exam Day"],
       }
     }
     
@@ -412,6 +413,7 @@ function generatePlaycardDetails(data) {
       "Center Code": group["Center Code"],
       "Center Name": group["Center Name"],
       "City": group["City"],
+      "Exam Day": group["Exam Day"],  
       "Batch": group["Batch"],
       "Building Name": group["Building Name"],
       "Floor Name": group["Floor Name"],
