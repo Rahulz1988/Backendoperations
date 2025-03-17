@@ -77,7 +77,7 @@ const appState = {
 downloadFinalAllocationBtn.addEventListener("click", () => {
     try {
       // Download the original processed data
-      downloadExcelFile(appState.finalAllocationResult, "file_statistics-Final_Allocation.xlsx")
+      downloadExcelFile(appState.finalAllocationResult, "Final_Seat_Allocation.xlsx")
       
       // Generate and download the consolidated Playcard details
       const playcardData = generatePlaycardDetails(appState.finalAllocationResult)
